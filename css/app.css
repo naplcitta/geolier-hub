@@ -473,3 +473,6 @@ body.has-mini main{padding-bottom:calc(var(--tabh) + 160px + env(safe-area-inset
 .timeline-ms b{display:block;font-size:15px}
 .timeline-ms p{margin:2px 0 0;color:var(--muted);font-size:13px}
 @media (max-width:760px){.timeline-ms li{grid-template-columns:44px 1fr}.timeline-ms .msd{grid-column:1/3}.timeline-ms img{width:44px;height:44px}}
+
+.stagehero .ten{position:absolute;right:-6px;top:-34px;font-family:var(--display);font-weight:900;font-size:220px;line-height:1;color:rgba(255,255,255,.05);pointer-events:none;letter-spacing:-.02em}
+.stagehero .hero{z-index:1}
