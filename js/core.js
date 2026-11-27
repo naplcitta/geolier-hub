@@ -40,7 +40,11 @@ try{const j=JSON.parse(localStorage.getItem(GKEY)||"null");if(j)G=Object.assign(
 function persist(){S.u=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("Storage is full. Export a backup from Me.")}snapshot()}
 function gsave(){G.u=Date.now();try{localStorage.setItem(GKEY,JSON.stringify(G))}catch(e){}}
 function snapshot(){try{const k="geohub.snap."+today();if(!localStorage.getItem(k)){localStorage.setItem(k,JSON.stringify({S,G}));const old=Object.keys(localStorage).filter(x=>x.startsWith("geohub.snap.")).sort();while(old.length>5)localStorage.removeItem(old.shift())}}catch(e){}}
-function exportCode(){return JSON.stringify({app:"geohub",v:2,S,G})}
+function exportCode(){localSet("lastBackup",String(Date.now()));localSet("lastBackupNb",String(S.nb));return JSON.stringify({app:"geohub",v:2,S,G})}
+/* restore links: a compressed backup travels in the link's #fragment, which never leaves the phone */
+async function inflateCode(b64){const bin=Uint8Array.from(atob(b64.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0))
+ const out=new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"));return await new Response(out).text()}
+function backupDue(){if(S.nb<50)return false;const t=+localGet("lastBackup","0"),n=+localGet("lastBackupNb","0");return !t||Date.now()-t>7*864e5||S.nb-n>=300}
 function importCode(txt){const j=JSON.parse(txt);let s=null,g=null
  if(j&&j.app==="geohub"){s=j.S;g=j.G}else if(j&&j.app)throw new Error("other app");else if(j&&typeof j.r==="object")s=j
  if(!s||typeof s.r!=="object")throw new Error("bad")

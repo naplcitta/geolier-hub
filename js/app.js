@@ -15,6 +15,7 @@ function vHome(){const L=level(),P=progress(),dd=G.daily[today()],hr=new Date().
  <a href="#me" class="ring" style="--p:${L.pct.toFixed(1)}" aria-label="Level ${L.l}"><div><div><b class="foil">${L.l}</b><small>level</small></div></div></a></div>
  <p class="lvname">${esc(L.name)}${L.need?` · ${(L.need-L.into).toLocaleString()} XP to ${esc(LEVELS[L.l])}`:""}</p></section>
  ${installCard()}
+ ${backupDue()?`<div class="card glow" style="margin-bottom:12px"><p class="eyebrow">Protect your progress</p><b style="display:block;font-size:16px;margin:4px 0">${localGet("lastBackup","")?"Your last backup is out of date.":"You haven't backed up yet."} ${S.nb.toLocaleString()} battles live only on this phone.</b><p class="hint">Clearing your browser history erases them. Save a copy to Files or iCloud Drive.</p><div class="row" style="margin-top:10px"><button class="btn small gold" id="bk-file">Save backup file</button><button class="btn small" id="bk-code">Copy backup code</button></div></div>`:""}
  ${fresh?`<div class="card glow" style="margin-bottom:12px"><p class="eyebrow">Welcome</p><b style="font-family:var(--display);font-weight:900;font-size:28px;text-transform:uppercase;display:block;line-height:1.02;margin:4px 0 6px">Rank every Geolier song. Prove you know the catalogue.</b><p class="hint">Pick between two songs and your all-time list of ${D.songs.length}, deluxe editions included, builds itself. Then play the games, grade the albums and send friends your top 25. No account needed. Everything stays on your phone.</p>
   <div class="row" style="margin-top:12px"><input type="text" id="nm-home" placeholder="Your name (for share cards)" value="${esc(myName())}" maxlength="24" style="flex:1;min-width:160px"><a class="btn gold" href="#rank" id="go-rank">Start ranking</a><a class="btn" href="#daily">Today's challenge</a></div>
   <details style="margin-top:12px"><summary class="hint">Have a backup code?</summary><textarea id="imp-home" rows="3" placeholder="Paste your backup code" style="margin-top:8px"></textarea><button class="btn small" id="imp-go" style="margin-top:8px">Import my progress</button></details></div>`:""}
@@ -36,7 +37,17 @@ function vHome(){const L=level(),P=progress(),dd=G.daily[today()],hr=new Date().
   <a class="card notecard" href="#person-${per.id}" style="text-decoration:none"><p class="eyebrow">From the circle</p><b class="nt">${esc(per.name)}</b><p class="hint">${esc(per.bio.slice(0,200))}${per.bio.length>200?"…":""}</p><small class="hint">${esc(per.tag)}</small></a></div>`})()}
  ${anniv.length?`<div class="sec-h"><div><h2>This Month</h2><p>Anniversaries in ${new Date().toLocaleString("en-CA",{month:"long"})}.</p></div></div><div class="picks">${anniv.map(a=>`<a class="pick" href="#album-${a.k}" style="text-decoration:none"><img src="${a.art}" alt=""><div><small>${a.date}</small><b>${esc(a.t)}</b><p>${new Date().getFullYear()-a.y} years old this month.</p></div></a>`).join("")}</div>`:""}`}
 const cap=t=>t.charAt(0).toUpperCase()+t.slice(1)
+async function saveBackupFile(){const f=new File([exportCode()],`geolier-hub-backup-${today()}.json`,{type:"application/json"})
+ try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Backup"});toast("Backup saved");route(true);return}}catch(e){if(e.name==="AbortError")return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove();toast("Backup saved");route(true)}
+async function copyBackupCode(){const c=exportCode();try{await navigator.clipboard.writeText(c);toast("Backup copied. Paste it into Notes.")}catch(e){toast("Use Save backup file instead")}route(true)}
+function vRestore(code){return `<p class="eyebrow">Restore</p><h1 class="title foil">Restore your progress</h1><div class="card glow" id="rs-card"><p class="hint">Reading the backup in this link…</p></div>`}
+async function afterRestore(code){const c=$("#rs-card");let txt
+ try{txt=await inflateCode(code);const j=JSON.parse(txt),s=j.S||j;c.innerHTML=`<p class="hint">This link holds a ranking with <b>${(s.nb||0).toLocaleString()} battles</b> and ${Object.keys(s.r||{}).length} ratings.${S.nb?` It replaces what's on this phone now (${S.nb.toLocaleString()} battles), and a copy of the current data is kept first.`:""}</p><button class="btn gold" id="rs-go" style="margin-top:12px">Restore it</button>`
+  $("#rs-go").onclick=()=>{try{const r=importCode(txt);toast(`Restored ${r.battles.toLocaleString()} battles`);renderChrome();location.replace("#home")}catch(e){toast("That restore link didn't work")}}}
+ catch(e){c.innerHTML=`<p class="hint">This restore link couldn't be read. Make sure you copied the whole link.</p>`}}
 function afterHome(){afterInstall()
+ const bf=$("#bk-file");if(bf)bf.onclick=saveBackupFile;const bc=$("#bk-code");if(bc)bc.onclick=copyBackupCode
  const b=$("#imp-go");if(b)b.onclick=()=>doImport($("#imp-home").value)
  const n=$("#nm-home");if(n)n.onchange=()=>localSet("name",n.value.trim())
  const c=$("#sh-card");if(c)c.onclick=topCard
@@ -91,6 +102,7 @@ function route(keep){if(!D)return
  Game.live=false;Game.stopAudio()
  $$(".tabbar a").forEach(a=>a.toggleAttribute("aria-current",a.dataset.tab===TAB_OF(h)))
  if(h.startsWith("album-")){v.innerHTML=vAlbum(h.slice(6));afterAlbum(h.slice(6))}
+ else if(h.startsWith("restore-")){v.innerHTML=vRestore();afterRestore(h.slice(8))}
  else if(h.startsWith("person-")){v.innerHTML=vPerson(h.slice(7));afterPerson()}
  else if(h.startsWith("producer-")){v.innerHTML=vProducer(h.slice(9));afterPerson()}
  else if(h.startsWith("vs-")){v.innerHTML=vVs(h.slice(3));afterVs()}
